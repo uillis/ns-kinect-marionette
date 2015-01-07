@@ -119,7 +119,8 @@ function Renderer(scenes){
 
         iterations: 10,
         stiffness: 1000000,
-        relaxation: 4,
+        //relaxation: 4,
+        relaxation: 10,
         tolerance: 0.0001,
     };
 
@@ -242,7 +243,8 @@ Renderer.prototype.setupGUI = function() {
 
     var that = this;
 
-    var gui = this.gui = new dat.GUI();
+    var gui = window.gui = this.gui = new dat.GUI();
+
     gui.domElement.setAttribute('style',disableSelectionCSS.join(';'));
 
     var settings = this.settings;
@@ -254,7 +256,7 @@ Renderer.prototype.setupGUI = function() {
 
     // World folder
     var worldFolder = gui.addFolder('World');
-    worldFolder.open();
+   // worldFolder.open();
     worldFolder.add(settings, 'paused [p]').onChange(function(p){
         that.paused = p;
     });
@@ -281,6 +283,7 @@ Renderer.prototype.setupGUI = function() {
     });
 
     // Rendering
+    /*
     var renderingFolder = gui.addFolder('Rendering');
     renderingFolder.open();
     renderingFolder.add(settings,'drawContacts [c]').onChange(function(draw){
@@ -289,10 +292,10 @@ Renderer.prototype.setupGUI = function() {
     renderingFolder.add(settings,'drawAABBs [t]').onChange(function(draw){
         that.drawAABBs = draw;
     });
-
+    */
     // Solver
     var solverFolder = gui.addFolder('Solver');
-    solverFolder.open();
+   // solverFolder.open();
     solverFolder.add(settings, 'iterations', 1, 100).step(1).onChange(function(it){
         that.world.solver.iterations = it;
     });
@@ -305,10 +308,10 @@ Renderer.prototype.setupGUI = function() {
     solverFolder.add(settings, 'tolerance', 0, 10).step(0.01).onChange(function(t){
         that.world.solver.tolerance = t;
     });
-
+/*
     // Scene picker
     var sceneFolder = gui.addFolder('Scenes');
-    sceneFolder.open();
+   // sceneFolder.open();
 
     // Add scenes
     var i = 1;
@@ -319,6 +322,7 @@ Renderer.prototype.setupGUI = function() {
         };
         sceneFolder.add(settings, guiLabel);
     }
+*/
 };
 
 /**
@@ -349,16 +353,22 @@ Renderer.prototype.setWorld = function(world){
 
     var that = this;
 
-    world.on("postStep",function(e){
-        that.updateStats();
+    world.on("postStep",function(e){ 
+       // that.updateStats(); /*disabled stats*/
     }).on("addBody",function(e){
+
+        console.log('yay adding body',e);/*YAY*/
+
         that.addVisual(e.body);
+
     }).on("removeBody",function(e){
+
         that.removeVisual(e.body);
+
     }).on("addSpring",function(e){
-        that.addVisual(e.spring);
+        //that.addVisual(e.spring); /*disabled spring visuals*/
     }).on("removeSpring",function(e){
-        that.removeVisual(e.spring);
+       // that.removeVisual(e.spring); /*disabled spring visuals*/
     });
 };
 
@@ -524,17 +534,18 @@ Renderer.prototype.startRenderingLoop = function(){
 
     function update(){
 
-        doobstats.begin();
+       // doobstats.begin();
 
         if(!demo.paused){
             var now = Date.now() / 1000,
                 timeSinceLastCall = now-lastCallTime;
             lastCallTime = now;
             demo.world.step(demo.timeStep, timeSinceLastCall, demo.settings.maxSubSteps);
+
         }
         demo.render();
 
-        doobstats.end();
+        //doobstats.end();
 
         requestAnimFrame(update);
     }
@@ -849,26 +860,6 @@ Renderer.prototype.createStats = function(){
 };
 
 Renderer.prototype.addLogo = function(){
-    var css = [
-        'position:absolute',
-        'left:10px',
-        'top:15px',
-        'text-align:center',
-        'font: 13px Helvetica, arial, freesans, clean, sans-serif',
-    ].concat(disableSelectionCSS);
-
-    /*var div = document.createElement('div');
-    div.innerHTML = [
-        "<div style='"+css.join(';')+"' user-select='none'>",
-        "<h1 style='margin:0px'><a href='http://github.com/schteppe/p2.js' style='color:black; text-decoration:none;'>p2.js</a></h1>",
-        "<p style='margin:5px'>Physics Engine</p>",
-        '<a style="color:black; text-decoration:none;" href="https://twitter.com/share" class="twitter-share-button" data-via="schteppe" data-count="none" data-hashtags="p2js">Tweet</a>',
-        "</div>"
-    ].join("");
-    this.elementContainer.appendChild(div);*/
-
-    // Twitter button script
-    //!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');
 };
 
 Renderer.zoomInEvent = {
@@ -912,7 +903,7 @@ function WebGLRenderer(world,options){
     var that = this;
 
     var settings = {
-        lineWidth : 0.01,
+        lineWidth : 0,
         scrollFactor : 0.1,
         width : 1280, // Pixi screen resolution
         height : 720,
@@ -994,6 +985,7 @@ WebGLRenderer.prototype.stagePositionToPhysics = function(out,stagePosition){
  */
 var init_stagePosition = p2.vec2.create(),
     init_physicsPosition = p2.vec2.create();
+
 WebGLRenderer.prototype.init = function(){
     var w = this.w,
         h = this.h,
@@ -1003,9 +995,16 @@ WebGLRenderer.prototype.init = function(){
 
     var renderer =  this.renderer =     PIXI.autoDetectRenderer(s.width, s.height, null, null, true);
     var stage =     this.stage =        new PIXI.DisplayObjectContainer();
-    var container = this.container =    new PIXI.Stage(0xFFFFFF,true);
+    var container = this.container =    new PIXI.Stage(0x000000,true);
+
+          var pixelateFilter = this.pixelateFilter = new PIXI.PixelateFilter();
+          var blurFilter1 = this.blurFilter1 = new PIXI.BlurFilter();
+          
+         
 
     var el = this.element = this.renderer.view;
+
+    el.filters = [pixelateFilter];
     el.tabIndex = 1;
     el.classList.add(Renderer.elementClass);
     el.setAttribute('style','width:100%;');
@@ -1027,12 +1026,15 @@ WebGLRenderer.prototype.init = function(){
     stage.addChild(this.drawShapeGraphics);
 
     // Graphics object for contacts
-    this.contactGraphics = new PIXI.Graphics();
-    stage.addChild(this.contactGraphics);
+   // this.contactGraphics = new PIXI.Graphics();
+   // stage.addChild(this.contactGraphics);
 
     // Graphics object for AABBs
-    this.aabbGraphics = new PIXI.Graphics();
-    stage.addChild(this.aabbGraphics);
+    //this.aabbGraphics = new PIXI.Graphics();
+   // stage.addChild(this.aabbGraphics);
+
+
+        
 
     stage.scale.x = 200; // Flip Y direction.
     stage.scale.y = -200;
@@ -1260,9 +1262,9 @@ WebGLRenderer.prototype.frame = function(centerX, centerY, width, height){
  */
 WebGLRenderer.prototype.drawCircle = function(g,x,y,angle,radius,color,lineWidth,isSleeping){
     lineWidth = typeof(lineWidth)==="number" ? lineWidth : 1;
-    color = typeof(color)==="number" ? color : 0xffffff;
-    g.lineStyle(lineWidth, 0x000000, 1);
-    g.beginFill(color, isSleeping ? this.sleepOpacity : 1.0);
+   // color = typeof(color)==="number" ? color : 0xffffff;
+    //g.lineStyle(lineWidth, 0x000000, 1);
+    g.beginFill('0xffffff', isSleeping ? this.sleepOpacity : 1.0);
     g.drawCircle(x, y, radius);
     g.endFill();
 
@@ -1380,15 +1382,24 @@ WebGLRenderer.prototype.drawCapsule = function(g, x, y, angle, len, radius, colo
 
 };
 
-// Todo angle
+
+
 WebGLRenderer.prototype.drawRectangle = function(g,x,y,angle,w,h,color,fillColor,lineWidth,isSleeping){
-    lineWidth = typeof(lineWidth)==="number" ? lineWidth : 1;
+
+    //HERE Rectangle
+        //ENABLE DISABLE BOXES HERE
+    //HERE Rectangle
+
     color = typeof(color)==="number" ? color : 0xffffff;
     fillColor = typeof(fillColor)==="number" ? fillColor : 0xffffff;
-    g.lineStyle(lineWidth);
-    g.beginFill(fillColor, isSleeping ? this.sleepOpacity : 1.0);
+
+    g.beginFill(fillColor, 0);
+
     g.drawRect(x-w/2,y-h/2,w,h);
+    g.endFill();
 };
+
+
 
 WebGLRenderer.prototype.drawConvex = function(g,verts,triangles,color,fillColor,lineWidth,debug,offset,isSleeping){
     lineWidth = typeof(lineWidth)==="number" ? lineWidth : 1;
@@ -1491,6 +1502,7 @@ var X = p2.vec2.fromValues(1,0),
     distVec = p2.vec2.fromValues(0,0),
     worldAnchorA = p2.vec2.fromValues(0,0),
     worldAnchorB = p2.vec2.fromValues(0,0);
+
 WebGLRenderer.prototype.render = function(){
     var w = this.renderer.width,
         h = this.renderer.height,
@@ -1557,7 +1569,7 @@ WebGLRenderer.prototype.render = function(){
     }
 
     // Clear contacts
-    if(this.drawContacts){
+   /* if(this.drawContacts){
         this.contactGraphics.clear();
         this.stage.removeChild(this.contactGraphics);
         this.stage.addChild(this.contactGraphics);
@@ -1604,7 +1616,7 @@ WebGLRenderer.prototype.render = function(){
     } else if(!this.aabbGraphics.cleared){
         this.aabbGraphics.clear();
         this.aabbGraphics.cleared = true;
-    }
+    }*/
 
     this.renderer.render(this.container);
 };
@@ -1629,16 +1641,20 @@ function randomPastelHex(){
     green = Math.floor((green + 3*mix[1]) / 4);
     blue =  Math.floor((blue +  3*mix[2]) / 4);
 
-    return rgbToHex(red,green,blue);
+    //return rgbToHex(red,green,blue);
+    return rgbToHex(50,50,50);
 }
 
 WebGLRenderer.prototype.drawRenderable = function(obj, graphics, color, lineColor){
     var lw = this.lineWidth;
-    lw = 0; /*something is wrong with the line drawing space*/
     var zero = [0,0];
+
+  // console.log('drawingRenderable! :',obj, graphics, color, lineColor);
+
     graphics.drawnSleeping = false;
     graphics.drawnColor = color;
     graphics.drawnLineColor = lineColor;
+
 
     if(obj instanceof p2.Body && obj.shapes.length){
 
@@ -1673,8 +1689,16 @@ WebGLRenderer.prototype.drawRenderable = function(obj, graphics, color, lineColo
                 } else if(child instanceof p2.Line){
                     WebGLRenderer.drawLine(graphics, offset, angle, child.length, lineColor, lw);
 
-                } else if(child instanceof p2.Rectangle){ /*HERE Rectangle*/
+                } else if(child instanceof p2.Rectangle){
+
+
+
+
+                    /*HERE Rectangle*/
                     this.drawRectangle(graphics, offset[0], offset[1], angle, child.width, child.height, lineColor, color, lw, isSleeping);
+                    /*HERE Rectangle*/
+
+
 
                 } else if(child instanceof p2.Capsule){
                     this.drawCapsule(graphics, offset[0], offset[1], angle, child.length, child.radius, lineColor, color, lw, isSleeping);
@@ -1712,6 +1736,7 @@ WebGLRenderer.prototype.drawRenderable = function(obj, graphics, color, lineColo
 WebGLRenderer.prototype.addRenderable = function(obj){
     var lw = this.lineWidth;
 
+   
     // Random color
     var color = parseInt(randomPastelHex(),16),
         lineColor = 0x000000;
@@ -1721,12 +1746,42 @@ WebGLRenderer.prototype.addRenderable = function(obj){
     var sprite = new PIXI.Graphics();
     if(obj instanceof p2.Body && obj.shapes.length){
 
+
         this.drawRenderable(obj, sprite, color, lineColor);
         this.sprites.push(sprite);
         this.stage.addChild(sprite);
 
+       if(obj.shapes[0] instanceof p2.Rectangle && obj.texture){
+        /**/
+        //where do i put texture?
+            
+        /*FILTER APPLY TEST*/
+           /* var blurFilter = new PIXI.BlurFilter();
+            var PixelateFilter  = new PIXI.PixelateFilter();
+            var rgbSplitterFilter = new PIXI.RGBSplitFilter();
+            sprite.filters = [rgbSplitterFilter];*/
+
+            var tx = new PIXI.Sprite(obj.texture);
+
+            tx.width = sprite.width;
+            tx.height = -sprite.height;
+
+           //tx.width = 2*sprite.width;
+           //tx.height = 2*-sprite.height;
+
+
+            tx.x = -(sprite.width)*.5;
+            tx.y = (sprite.height)*.5;
+            sprite.addChild(tx);
+
+        /**/
+        //where do i put texture?
+       }
+
+
+
     } else if(obj instanceof p2.Spring){
-        this.drawRenderable(obj, sprite, 0x000000, lineColor);
+       // this.drawRenderable(obj, sprite, 0x000000, lineColor);
         this.springSprites.push(sprite);
         this.stage.addChild(sprite);
     }
