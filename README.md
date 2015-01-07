@@ -1,4 +1,4 @@
-temp-kinect-marionette
+ns-kinect-marionette
 ======================
 
 working files for northern spark
