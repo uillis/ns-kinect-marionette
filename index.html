@@ -35,7 +35,14 @@ doobstats.domElement.style.top = '0px';
 document.body.appendChild( doobstats.domElement );
 /**/
 
-var testsk = {};
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+
+
+var testsk0 = {};
+var testsk1 = {};
 
 /* Temp Textures for demo - probably use spritesheets*/
 var TEXTURE_chest      = PIXI.Texture.fromImage("parts/images/chest.png");
@@ -162,14 +169,24 @@ socket.onmessage = function (event) {
         }
 
        
-
+        var tempcount = 0;
 
         for (var k in trackedSkeletons){
             if (trackedSkeletons.hasOwnProperty(k)) {
-                //console.log(k);
+                console.log(k);
                 //console.log(trackedSkeletons[k]);
-                testsk.movePoints( trackedSkeletons[k]);
-                break;
+                
+                if(tempcount == 0){
+                testsk1.movePoints( trackedSkeletons[k]);
+                }
+                if(tempcount == 1){
+                testsk0.movePoints( trackedSkeletons[k]);
+                }
+                tempcount++;
+                if(tempcount > 1){
+                    break;
+                }
+                
             }
         }
 
@@ -297,7 +314,9 @@ world.addBody(br);
             var skeleton = function(obj) {//init
                 var self = this; 
                 self.name = obj['name'];
-                self.o = { mass: 0, position: [0,0] };
+                self.position = [ obj['x'], obj['y'] ];
+
+                self.o = { mass: 0, position: self.position };
 
                 self.points = [
                     self.ankleleft      = new p2.Body(self.o),
@@ -379,58 +398,62 @@ world.addBody(br);
                     this.wristright.position      = mapcoords(obj['wristright'].x  , obj['wristright'].y);
                 },
 
-                tempconnect : function(obj){
+                tempconnect : function(obj){//maybe move to ragdoll
 
-                    var h_link = new p2.LinearSpring(this.head, r1.head, {
+                    console.log('CONNECTING',obj);
+                    var target = obj['target'];
+                   
+
+                    var h_link = new p2.LinearSpring(this.head, target.head, {
                         restLength : 0,
                         stiffness : 200,
                         localAnchorA : [0 , 0],
                         localAnchorB : [0 , 0],
                     });
              
-                    var p_link = new p2.LinearSpring(this.hipcenter, r1.pelvis, {
+                    var p_link = new p2.LinearSpring(this.hipcenter, target.pelvis, {
                         restLength : 0,
                         stiffness : 200,
                         localAnchorA : [0 , 0],
                         localAnchorB : [0 , 0],
                     });
 
-                    var re_link = new p2.LinearSpring(this.elbowright, r1.upperRightArm, {
+                    var re_link = new p2.LinearSpring(this.elbowright, target.upperRightArm, {
                         restLength : 0,
                         stiffness : 100,
                         localAnchorA : [0 , 0],
                         localAnchorB : [upperArmLength/2 ,0],
                     });
 
-                    var le_link = new p2.LinearSpring(this.elbowleft, r1.upperLeftArm, {
+                    var le_link = new p2.LinearSpring(this.elbowleft, target.upperLeftArm, {
                         restLength : 0,
                         stiffness : 100,
                         localAnchorA : [0 , 0],
                         localAnchorB : [-upperArmLength/2 ,0],
                     });
 
-                    var rh_link = new p2.LinearSpring(this.wristright, r1.lowerRightArm, {
+                    var rh_link = new p2.LinearSpring(this.wristright, target.lowerRightArm, {
                         restLength : 0,
                         stiffness : 100,
                         localAnchorA : [0 , 0],
                         localAnchorB : [lowerArmLength/2 ,0],
                     });
 
-                    var lh_link = new p2.LinearSpring(this.wristleft, r1.lowerLeftArm, {
+                    var lh_link = new p2.LinearSpring(this.wristleft, target.lowerLeftArm, {
                         restLength : 0,
                         stiffness : 100,
                         localAnchorA : [0 , 0],
                         localAnchorB : [-lowerArmLength/2 ,0],
                     });
 
-                     var rhh_link = new p2.LinearSpring(this.handright, r1.rightHand, {
+                     var rhh_link = new p2.LinearSpring(this.handright, target.rightHand, {
                         restLength : 0,
                         stiffness : 50,
                         localAnchorA : [0,0],
                         localAnchorB : [0,0],
                     });
 
-                    var lhh_link = new p2.LinearSpring(this.handleft, r1.leftHand, {
+                    var lhh_link = new p2.LinearSpring(this.handleft, target.leftHand, {
                         restLength : 0,
                         stiffness : 50,
                         localAnchorA : [0,0],
@@ -438,28 +461,28 @@ world.addBody(br);
                     });
 
 
-                    var rk_link = new p2.LinearSpring(this.kneeright, r1.upperRightLeg, {
+                    var rk_link = new p2.LinearSpring(this.kneeright, target.upperRightLeg, {
                         restLength : 0,
                         stiffness : 200,
                         localAnchorA : [0 , 0],
                         localAnchorB : [0 , -upperLegLength/2],
                     });
 
-                    var lk_link = new p2.LinearSpring(this.kneeleft, r1.upperLeftLeg, {
+                    var lk_link = new p2.LinearSpring(this.kneeleft, target.upperLeftLeg, {
                         restLength : 0,
                         stiffness : 200,
                         localAnchorA : [0 , 0],
                         localAnchorB : [0 , -upperLegLength/2],
                     });
 
-                    var rf_link = new p2.LinearSpring(this.footright, r1.lowerRightLeg, {
+                    var rf_link = new p2.LinearSpring(this.footright, target.lowerRightLeg, {
                         restLength : 0,
                         stiffness : 50,
                         localAnchorA : [0 , 0],
                         localAnchorB : [0 , -lowerLegLength/2],
                     });
 
-                    var lf_link = new p2.LinearSpring(this.footleft, r1.lowerLeftLeg, {
+                    var lf_link = new p2.LinearSpring(this.footleft, target.lowerLeftLeg, {
                         restLength : 0,
                         stiffness : 50,
                         localAnchorA : [0 , 0],
@@ -863,7 +886,6 @@ world.addBody(br);
               ragdoll.prototype = {
 
                     bindToSkeleton : function(obj){//Bind to Kinect Skeleton
-                        //move spring attachment here
                     },
                     unbindFromSkeleton : function(obj){//unbind from Kinect Skeleton
                     },
@@ -877,30 +899,39 @@ world.addBody(br);
         /**/
 
 
+        testsk0 = new skeleton({'name' : '', 'x':-6, 'y':0});
+        testsk1 = new skeleton({'name' : '', 'x':2, 'y':0});
 
         var r1 = new ragdoll({
             name:'1'
         });
-        testsk = new skeleton({'name' : ''});
-        window.setTimeout(function(){
-                testsk.tempconnect({});
-        },100);
 
+        window.setTimeout(function(){
+                testsk0.tempconnect({'target':r1});
+        },100);
 
         window.setTimeout(function(){ 
             var r2 = new ragdoll({
                 name:'2'
              });
+            testsk1.tempconnect({'target':r2});
          },3000);
 
 
+
+  
+
+
+
+
+ /*
          window.setTimeout(function(){ 
             var r3 = new ragdoll({
                 name:'3'
              });
          },6000);
 
-         /*
+        
         window.setTimeout(function(){ 
             var r4 = new ragdoll({
                 name:'4'
